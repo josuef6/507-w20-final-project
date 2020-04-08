@@ -182,14 +182,11 @@ def get_top_show_info(top_show_url):
     url_text = make_url_request_using_cache(top_show_url, CACHE_DICT)
     soup = BeautifulSoup(url_text, 'html.parser')
     show_info = soup.find(class_='title_wrapper')
-    # print(show_info)
 
     show_details_list = []
     show_details = show_info.find_all('a')
     for detail in show_details:
         show_details_list.append(detail.text.strip())
-        # print(detail.text.strip())
-    # print(show_details_list)
 
     show_title = show_info.find('h1').text.strip()
     show_air_years = show_details_list[-1].split('(')[1][:-1]
@@ -198,12 +195,6 @@ def get_top_show_info(top_show_url):
     show_type = show_details_list[-1].split('(')[0].strip()
     show_length = soup.find('time').text.strip()
     show_num_rating = soup.find(class_='ratingValue').text.strip().split('/')[0]
-    # print(show_title)
-    # print(show_air_years)
-    # print(show_rating)
-    # print(show_genre)
-    # print(show_genre_type)
-    # print(show_length)
 
     top_show = TopRatedShow(show_title, show_air_years, show_tv_rating, show_genre, show_type, show_length, show_num_rating)
     return top_show
