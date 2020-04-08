@@ -169,7 +169,7 @@ class TopRatedShow:
         else:
             self.show_title = show_title
         if show_air_years == None:
-            self.show_air_years = 'No Year(s)'
+            self.show_air_years = 'No Air Year(s)'
         else:
             self.show_air_years = show_air_years
         if show_tv_rating == None:
@@ -222,12 +222,27 @@ def build_top_rated_url_dict():
             top_rated_dict[top_category.text.lower().strip().replace(' ', '_')] = BASE_URL+top_url
     return top_rated_dict
 
+def get_top_movie_info(top_movie_url):
+    '''Make an instances from a top rated movies's URL.
+
+    Parameters
+    ----------
+    top_movie_url: string
+        The URL for a top movie page on imdb.com
+
+    Returns
+    -------
+    instance
+        a top rated movie instance
+    '''
+    pass
+
 def get_top_show_info(top_show_url):
     '''Make an instances from a top rated show's URL.
 
     Parameters
     ----------
-    site_url: string
+    top_show_url: string
         The URL for a top show page on imdb.com
 
     Returns
@@ -236,11 +251,11 @@ def get_top_show_info(top_show_url):
         a top rated show instance
     '''
     CACHE_DICT = load_cache()
+    show_details_list = []
     url_text = make_url_request_using_cache(top_show_url, CACHE_DICT)
     soup = BeautifulSoup(url_text, 'html.parser')
     show_info = soup.find(class_='title_wrapper')
 
-    show_details_list = []
     show_details = show_info.find_all('a')
     for detail in show_details:
         show_details_list.append(detail.text.strip())
@@ -257,17 +272,17 @@ def get_top_show_info(top_show_url):
     return top_show
 
 if __name__ == "__main__":
-    # top_movie_url = 'https://www.imdb.com/title/tt0111161/?pf_rd_m=A2FGELUUNOQJNL&pf_rd_p=e31d89dd-322d-4646-8962-327b42fe94b1&pf_rd_r=EW1HMTNTT51KCVXWB0PF&pf_rd_s=center-1&pf_rd_t=15506&pf_rd_i=top&ref_=chttp_tt_1'
+    top_movie_url = 'https://www.imdb.com/title/tt0111161/?pf_rd_m=A2FGELUUNOQJNL&pf_rd_p=e31d89dd-322d-4646-8962-327b42fe94b1&pf_rd_r=EW1HMTNTT51KCVXWB0PF&pf_rd_s=center-1&pf_rd_t=15506&pf_rd_i=top&ref_=chttp_tt_1'
     # top_movie = get_top_movie_info(top_movie_url)
     # print(top_movie.info())
 
-    top_show_url = 'https://www.imdb.com/title/tt0903747/?pf_rd_m=A2FGELUUNOQJNL&pf_rd_p=12230b0e-0e00-43ed-9e59-8d5353703cce&pf_rd_r=1YHTMF2JWF8BMF9VG8WH&pf_rd_s=center-1&pf_rd_t=15506&pf_rd_i=toptv&ref_=chttvtp_tt_4'
+    # top_show_url = 'https://www.imdb.com/title/tt0903747/?pf_rd_m=A2FGELUUNOQJNL&pf_rd_p=12230b0e-0e00-43ed-9e59-8d5353703cce&pf_rd_r=1YHTMF2JWF8BMF9VG8WH&pf_rd_s=center-1&pf_rd_t=15506&pf_rd_i=toptv&ref_=chttvtp_tt_4'
     # top_show = get_top_show_info(top_show_url)
     # print(top_show.info())
 
     CACHE_DICT = load_cache()
-    # url_text = make_url_request_using_cache(top_movie_url, CACHE_DICT)
-    url_text = make_url_request_using_cache(top_show_url, CACHE_DICT)
+    url_text = make_url_request_using_cache(top_movie_url, CACHE_DICT)
+    # url_text = make_url_request_using_cache(top_show_url, CACHE_DICT)
     soup = BeautifulSoup(url_text, 'html.parser')
     show_info = soup.find(class_='title_wrapper')
     # print(show_info)
