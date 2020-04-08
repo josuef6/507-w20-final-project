@@ -219,7 +219,7 @@ def build_top_rated_url_dict():
         if top.text == 'Top Rated Movies' or top.text == 'Top Rated Shows':
             top_category = top
             top_url = top["href"]
-            top_rated_dict[top_category.text.lower().strip().replace(' ', '_')] = BASE_URL+top_url
+            top_rated_dict[top_category.text.lower().strip().split()[-1]] = BASE_URL+top_url
     return top_rated_dict
 
 def get_top_movie_info(top_movie_url):
@@ -250,7 +250,11 @@ def get_top_movie_info(top_movie_url):
     movie_rating = soup.find(class_='subtext').text.split()[0].strip()
     movie_genre = movie_details_list[1]
     movie_country = movie_details_list[-1].split('(')[1].strip()[:-1]
-    movie_length = soup.find('time').text.strip()
+    movie_length = soup.find('time')
+    if movie_length == None:
+        movie_length = 'No Length'
+    else:
+        movie_length = movie_length.text.strip()
     movie_num_rating = soup.find(class_='ratingValue').text.strip().split('/')[0]
 
     top_movie = TopMovieShow(movie_title, movie_release_year, movie_rating, movie_genre, movie_country, movie_length, movie_num_rating)
@@ -284,38 +288,77 @@ def get_top_show_info(top_show_url):
     show_tv_rating = soup.find(class_='subtext').text.split()[0].strip()
     show_genre = show_details_list[:-1]
     show_type = show_details_list[-1].split('(')[0].strip()
-    show_length = soup.find('time').text.strip()
+    show_length = soup.find('time')
+    if show_length == None:
+        show_length = 'No Length'
+    else:
+        show_length = show_length.text.strip()
     show_num_rating = soup.find(class_='ratingValue').text.strip().split('/')[0]
 
     top_show = TopRatedShow(show_title, show_air_years, show_tv_rating, show_genre, show_type, show_length, show_num_rating)
     return top_show
 
+def get_sites_for_movies_or_shows(top_media_type, top_url):
+    '''Make a list of movie/tv show instances from a movie/tv show URL.
+
+    Parameters
+    ----------
+    top_url: string
+        The URL for a movie/tv show page on imdb.com
+
+    Returns
+    -------
+    list
+        a list of movies/tv show instances
+    '''
+    top_movies_list = []
+    top_shows_list = []
+    CACHE_DICT = load_cache()
+    url_text = make_url_request_using_cache(top_url, CACHE_DICT)
+    soup = BeautifulSoup(url_text, 'html.parser')
+
+    top_list = soup.find(class_='lister-list')
+    tops = top_list.find_all('td', class_='titleColumn')
+
+    for top in tops:
+        top_url = top.find('a')['href']
+        top_full_url = BASE_URL + top_url
+        # if len(top_movies_list) == 50 or len(top_shows_list) == 50:
+        #     break
+        # else:
+        if top_media_type == 'movies':
+            top_instance = get_top_movie_info(top_full_url)
+            top_movies_list.append(top_instance)
+        else:
+            top_instance = get_top_show_info(top_full_url)
+            top_shows_list.append(top_instance)
+    if top_media_type == 'movies':
+        return top_movies_list
+    else:
+        return top_shows_list
+
 if __name__ == "__main__":
-    top_movie_url = 'https://www.imdb.com/title/tt0111161/?pf_rd_m=A2FGELUUNOQJNL&pf_rd_p=e31d89dd-322d-4646-8962-327b42fe94b1&pf_rd_r=EW1HMTNTT51KCVXWB0PF&pf_rd_s=center-1&pf_rd_t=15506&pf_rd_i=top&ref_=chttp_tt_1'
-    top_movie = get_top_movie_info(top_movie_url)
-    print(top_movie.info())
-
-    # top_show_url = 'https://www.imdb.com/title/tt0903747/?pf_rd_m=A2FGELUUNOQJNL&pf_rd_p=12230b0e-0e00-43ed-9e59-8d5353703cce&pf_rd_r=1YHTMF2JWF8BMF9VG8WH&pf_rd_s=center-1&pf_rd_t=15506&pf_rd_i=toptv&ref_=chttvtp_tt_4'
-    # top_show = get_top_show_info(top_show_url)
-    # print(top_show.info())
-
-    # state_dict = build_state_url_dict()
-    # while True:
-    #     state = input('Enter a state name (e.g. Michigan, michigan) or "exit": ')
-    #     if state.isalpha:
-    #         if state.lower() == 'exit':
-    #             exit()
-    #         if state.lower() not in state_dict.keys():
-    #             print('[Error] Enter a proper state name!')
-    #         else:
-    #             state_url = state_dict[state.lower()]
-    #             site_list = get_sites_for_state(state_url)
-    #             print_header_for_state_search(state, state_dict)
-    #             site_dict = {}
-    #             count = 0
-    #             for site in site_list:
-    #                 count += 1
-    #                 site_dict[count] = site.info()
-    #                 print(f"[{count}] {site.info()}")
-    #     else:
-    #         print('[Error] Enter a proper state name!')
+    top_media_type = input('Please indicate whether you want info for top rated movies or tv shows (e.g. Movies, movies, Shows, show) or "exit": ')
+    while top_media_type.lower() != 'exit':
+        top_rated_dict = build_top_rated_url_dict()
+        # top_media_type = input('Please indicate whether you want info for top rated movies or tv shows (e.g. Movies, movies, Shows, show) or "exit": ')
+        if top_media_type.isalpha:
+            if top_media_type.lower() == 'exit':
+                exit()
+            if top_media_type.lower() not in top_rated_dict.keys():
+                print('[Error] Incorrect input!')
+            else:
+                top_url = top_rated_dict[top_media_type.lower()]
+                top_rated_list = get_sites_for_movies_or_shows(top_media_type.lower(), top_url)
+                # print_header_for_state_search(top_media_type, top_media_type)
+                top_rated_dict = {}
+                count = 0
+                for top_item in top_rated_list:
+                    count += 1
+                    top_rated_dict[count] = top_item.info()
+                    print(f"[{count}] {top_item.info()}")
+                print()
+        else:
+            print('[Error] Incorrect input!')
+        print('This is the end of the program. Goodbye!')
+        exit()
