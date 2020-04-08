@@ -140,7 +140,7 @@ class TopMovieShow:
             self.movie_num_rating = movie_num_rating
 
     def info(self):
-        return (f"{self.movie_title} ({self.movie_country})({self.movie_release_year}): Is a {self.movie_genre} film rated {self.movie_rating}, {self.movie_length} long with a {self.movie_num_rating} out of 10.")
+        return (f"{self.movie_title} ({self.movie_country}, {self.movie_release_year}): Is a {self.movie_genre} film rated {self.movie_rating}, {self.movie_length} long with a {self.movie_num_rating} rating out of 10.")
 
 
 class TopRatedShow:
@@ -194,7 +194,7 @@ class TopRatedShow:
             self.show_num_rating = show_num_rating
 
     def info(self):
-        return (f"{self.show_title} ({self.show_air_years}): Is a {self.show_type} rated {self.show_tv_rating}, Genre(s) - {self.show_genre}, {self.show_length} long with a {self.show_num_rating} out of 10.")
+        return (f"{self.show_title} ({self.show_air_years}): Is a {self.show_type} rated {self.show_tv_rating}, Genre(s) - {self.show_genre}, {self.show_length} long with a {self.show_num_rating} rating out of 10.")
 
 def build_top_rated_url_dict():
     ''' Make a dictionary that maps state name to state page url from "https://www.imdb.com"
@@ -235,7 +235,26 @@ def get_top_movie_info(top_movie_url):
     instance
         a top rated movie instance
     '''
-    pass
+    CACHE_DICT = load_cache()
+    url_text = make_url_request_using_cache(top_movie_url, CACHE_DICT)
+    soup = BeautifulSoup(url_text, 'html.parser')
+    movie_info = soup.find(class_='title_wrapper')
+
+    movie_details_list = []
+    movie_details = movie_info.find_all('a')
+    for detail in movie_details:
+        movie_details_list.append(detail.text.strip())
+
+    movie_title = movie_info.find('h1').text.split('(')[0].strip()
+    movie_release_year = movie_info.find('h1').text.split('(')[1].strip()[:-1]
+    movie_rating = soup.find(class_='subtext').text.split()[0].strip()
+    movie_genre = movie_details_list[1]
+    movie_country = movie_details_list[-1].split('(')[1].strip()[:-1]
+    movie_length = soup.find('time').text.strip()
+    movie_num_rating = soup.find(class_='ratingValue').text.strip().split('/')[0]
+
+    top_movie = TopMovieShow(movie_title, movie_release_year, movie_rating, movie_genre, movie_country, movie_length, movie_num_rating)
+    return top_movie
 
 def get_top_show_info(top_show_url):
     '''Make an instances from a top rated show's URL.
@@ -273,57 +292,12 @@ def get_top_show_info(top_show_url):
 
 if __name__ == "__main__":
     top_movie_url = 'https://www.imdb.com/title/tt0111161/?pf_rd_m=A2FGELUUNOQJNL&pf_rd_p=e31d89dd-322d-4646-8962-327b42fe94b1&pf_rd_r=EW1HMTNTT51KCVXWB0PF&pf_rd_s=center-1&pf_rd_t=15506&pf_rd_i=top&ref_=chttp_tt_1'
-    # top_movie = get_top_movie_info(top_movie_url)
-    # print(top_movie.info())
+    top_movie = get_top_movie_info(top_movie_url)
+    print(top_movie.info())
 
     # top_show_url = 'https://www.imdb.com/title/tt0903747/?pf_rd_m=A2FGELUUNOQJNL&pf_rd_p=12230b0e-0e00-43ed-9e59-8d5353703cce&pf_rd_r=1YHTMF2JWF8BMF9VG8WH&pf_rd_s=center-1&pf_rd_t=15506&pf_rd_i=toptv&ref_=chttvtp_tt_4'
     # top_show = get_top_show_info(top_show_url)
     # print(top_show.info())
-
-    CACHE_DICT = load_cache()
-    url_text = make_url_request_using_cache(top_movie_url, CACHE_DICT)
-    # url_text = make_url_request_using_cache(top_show_url, CACHE_DICT)
-    soup = BeautifulSoup(url_text, 'html.parser')
-    show_info = soup.find(class_='title_wrapper')
-    # print(show_info)
-
-    show_details_list = []
-    show_details = show_info.find_all('a')
-    for detail in show_details:
-        show_details_list.append(detail.text.strip())
-        # print(detail.text.strip())
-    # print(show_details_list)
-    # print()
-
-    show_title = show_info.find('h1').text.strip()
-    show_air_years = show_details_list[-1].split('(')[1][:-1]
-    show_tv_rating = soup.find(class_='subtext').text.split()[0].strip()
-    show_genre = show_details_list[:-1]
-    show_type = show_details_list[-1].split('(')[0].strip()
-    show_length = soup.find('time').text.strip()
-    show_num_rating = soup.find(class_='ratingValue').text.strip().split('/')[0]
-    # print(show_fan_rating)
-    # print(show_title)
-    # print(show_air_years)
-    # print(show_rating)
-    # print(show_genre)
-    # print(show_type)
-    # print(show_length)
-
-    top_show = TopRatedShow(show_title, show_air_years, show_tv_rating, show_genre, show_type, show_length, show_num_rating)
-    # print(top_show.info())
-
-
-
-
-
-
-
-
-
-
-
-
 
     # state_dict = build_state_url_dict()
     # while True:
