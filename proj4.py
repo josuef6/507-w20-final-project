@@ -88,6 +88,61 @@ def make_url_request_using_cache(url, cache):
         return cache[url]
 
 ############### BASE CLASS AND FUNCTIONS ###############
+class TopMovieShow:
+    '''Top Rated Movie
+
+    Instance Attributes
+    -------------------
+    movie_title: string
+        the title of a top rated movie
+    movie_release_year: string
+        the release year of a movie
+    movie_rating: string
+        the rating of a movie (e.g. 'PG', 'R')
+    movie_genre: string
+        the genre of a movie (e.g. 'Action', 'Horror')
+    movie_country: string
+        the country alpha-3 code (e.g. 'USA', 'GER')
+    movie_length: string
+        the total length (time) of a movie
+    movie_num_rating: string
+        the overall rating of a movie (out of 10)
+    '''
+
+    def __init__(self, movie_title, movie_release_year, movie_rating, movie_genre, movie_country, movie_length, movie_num_rating):
+        if movie_title == None:
+            self.movie_title = 'No Title'
+        else:
+            self.movie_title = movie_title
+        if movie_release_year == None:
+            self.movie_release_year = 'No Release Year'
+        else:
+            self.movie_release_year = movie_release_year
+        if movie_rating == None:
+            self.movie_rating = 'No Rating'
+        else:
+            self.movie_rating = movie_rating
+        if movie_genre == None:
+            self.movie_genre = 'No Genre'
+        else:
+            self.movie_genre = movie_genre
+        if movie_country == None:
+            self.movie_country = 'No Country'
+        else:
+            self.movie_country = movie_country
+        if movie_length == None:
+            self.movie_length = 'No Length'
+        else:
+            self.movie_length = movie_length
+        if movie_num_rating == None:
+            self.movie_num_rating = 'No Num Rating'
+        else:
+            self.movie_num_rating = movie_num_rating
+
+    def info(self):
+        return (f"{self.movie_title} ({self.movie_country})({self.movie_release_year}): Is a {self.movie_genre} film rated {self.movie_rating}, {self.movie_length} long with a {self.movie_num_rating} out of 10.")
+
+
 class TopRatedShow:
     '''Top Rated Show
 
@@ -105,6 +160,8 @@ class TopRatedShow:
         the type of a TV show (e.g. 'TV Mini Series', 'TV Series')
     show_length: string
         the total length (time) of an entire TV series or individual episodes
+    show_num_rating: string
+        the overall rating of a TV show (out of 10)
     '''
     def __init__(self, show_title, show_air_years, show_tv_rating, show_genre, show_type, show_length, show_num_rating):
         if show_title == None:
@@ -132,7 +189,7 @@ class TopRatedShow:
         else:
             self.show_length = show_length
         if show_num_rating == None:
-            self.show_num_rating = 'No Fan Rating'
+            self.show_num_rating = 'No Num Rating'
         else:
             self.show_num_rating = show_num_rating
 
@@ -201,7 +258,9 @@ def get_top_show_info(top_show_url):
 
 if __name__ == "__main__":
     # top_movie_url = 'https://www.imdb.com/title/tt0111161/?pf_rd_m=A2FGELUUNOQJNL&pf_rd_p=e31d89dd-322d-4646-8962-327b42fe94b1&pf_rd_r=EW1HMTNTT51KCVXWB0PF&pf_rd_s=center-1&pf_rd_t=15506&pf_rd_i=top&ref_=chttp_tt_1'
-    # top_show = get_top_show_info(top_show_url)
+    # top_movie = get_top_movie_info(top_movie_url)
+    # print(top_movie.info())
+
     top_show_url = 'https://www.imdb.com/title/tt0903747/?pf_rd_m=A2FGELUUNOQJNL&pf_rd_p=12230b0e-0e00-43ed-9e59-8d5353703cce&pf_rd_r=1YHTMF2JWF8BMF9VG8WH&pf_rd_s=center-1&pf_rd_t=15506&pf_rd_i=toptv&ref_=chttvtp_tt_4'
     # top_show = get_top_show_info(top_show_url)
     # print(top_show.info())
