@@ -2,11 +2,3 @@ secrets.py
 __pycache__
 cache.json
 .DS_Store
-api_search.json
-api_search1.json
-api_search2.json
-api_search3.json
-api_search4.json
-api_search5.json
-api_search6.json
-test.json
