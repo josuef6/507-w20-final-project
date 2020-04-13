@@ -12,6 +12,14 @@ import sqlite3
 BASE_URL = 'https://www.imdb.com'
 TOP_RATED_DICT = {'movies': 'https://www.imdb.com/chart/top/?ref_=nv_mv_250',
                   'shows': 'https://www.imdb.com/chart/toptv/?ref_=nv_tvv_250'}
+GENRE_LIST = {1: 'Action', 2: 'Adventure', 3: 'Animation', 4: 'Biography', 5: 'Comedy',
+              6: 'Crime', 7: 'Drama', 8: 'Family', 9: 'Fantasy', 10: 'Film-Noir', 11: 'History',
+              12: 'Horror', 13: 'Music', 14: 'Musical', 15: 'Mystery', 16: 'Romance', 17: 'Sci-Fi',
+              18: 'Sport', 19: 'Thriller', 20: 'War', 21: 'Western'}
+SHOW_TYPE_LIST = {1: 'TV Series', 2: 'TV Mini-Series'}
+RATINGS_LIST = {1: 'G', 2: 'M', 3: 'R', 4: 'X', 5: 'GP', 6: 'PG', 7: 'PG-13', 8: 'NC-17', 9: 'TV-Y',
+                10: 'TV-Y7', 11: 'TV-Y7 FV', 12: 'TV-G', 13: 'TV-PG', 14: 'TV-14', 15: 'TV-MA', 16: 'Approved',
+                17: 'Passed', 18: 'Not Rated'}
 CACHE_FILE_NAME = 'cache.json'
 CACHE_DICT = {}
 
@@ -32,27 +40,16 @@ def create_database():
         CREATE TABLE IF NOT EXISTS "Movies" (
             "Id"            INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE,
             "MovieTitle"    TEXT NOT NULL,
-            "FilmRating"    TEXT NOT NULL,
+            "FilmRatingId"  INTEGER NOT NULL,
             "Country"       TEXT NOT NULL,
             "ReleaseYear"   INTEGER NOT NULL,
-            "Genre"         TEXT NOT NULL,
+            "FirstGenreId"  INTEGER NOT NULL,
             "Length"        TEXT NOT NULL,
             "NumberRating"  REAL NOT NULL
         );
     '''
-    drop_movie_genres = '''
-        DROP TABLE IF EXISTS 'MovieGenres';
-    '''
-    create_movie_genres = '''
-        CREATE TABLE 'MovieGenres' (
-        'Id'            INTEGER PRIMARY KEY AUTOINCREMENT,
-        "GenreName"     TEXT NOT NULL
-        );
-    '''
     cur.execute(drop_movies)
     cur.execute(create_movies)
-    cur.execute(drop_movie_genres)
-    cur.execute(create_movie_genres)
 
     drop_shows = '''
         DROP TABLE IF EXISTS 'Shows';
@@ -61,10 +58,10 @@ def create_database():
         CREATE TABLE 'Shows' (
         'Id'            INTEGER PRIMARY KEY AUTOINCREMENT,
         "ShowTitle"     TEXT NOT NULL,
-        "ShowRating"    TEXT NOT NULL,
+        "ShowRatingId"  INTEGER NOT NULL,
         "YearsAired"    TEXT NOT NULL,
         "Genres"        TEXT NOT NULL,
-        "ShowType"      TEXT NOT NULL,
+        "ShowTypeId"    INTEGER NOT NULL,
         "Length"        TEXT NOT NULL,
         "NumberRating"  REAL NOT NULL
         );
@@ -78,11 +75,20 @@ def create_database():
         "ShowType"      TEXT NOT NULL
         );
     '''
-    cur.execute(drop_show_types)
-    cur.execute(create_show_types)
     cur.execute(drop_shows)
     cur.execute(create_shows)
+    cur.execute(drop_show_types)
+    cur.execute(create_show_types)
 
+    drop_genres = '''
+        DROP TABLE IF EXISTS 'Genres';
+    '''
+    create_genres = '''
+        CREATE TABLE 'Genres' (
+        'Id'            INTEGER PRIMARY KEY AUTOINCREMENT,
+        "GenreName"     TEXT NOT NULL
+        );
+    '''
     drop_rating_types = '''
         DROP TABLE IF EXISTS 'RatingTypes';
     '''
@@ -92,8 +98,61 @@ def create_database():
         "RatingType"      TEXT NOT NULL
         );
     '''
+    cur.execute(drop_genres)
+    cur.execute(create_genres)
     cur.execute(drop_rating_types)
     cur.execute(create_rating_types)
+
+    conn.commit()
+
+    insert_genres = '''
+        INSERT INTO Genres
+        VALUES (NULL, ?)
+    '''
+    for key, genre in GENRE_LIST.items():
+        cur.execute(insert_genres, [genre])
+    insert_show_types = '''
+        INSERT INTO ShowTypes
+        VALUES (NULL, ?)
+    '''
+    for key, show_type in SHOW_TYPE_LIST.items():
+        cur.execute(insert_show_types, [show_type])
+
+    insert_ratings = '''
+        INSERT INTO RatingTypes
+        VALUES (NULL, ?)
+    '''
+    for key, rating in RATINGS_LIST.items():
+        cur.execute(insert_ratings, [rating])
+    conn.commit()
+    conn.close()
+
+def populate_database(top_media_type, top_item):
+    conn = sqlite3.connect("project4.sqlite")
+    cur = conn.cursor()
+    movie_rating_id = ''
+    movie_genre_id = ''
+    if top_media_type == 'movies':
+        for key, rating in RATINGS_LIST.items():
+            if top_item.movie_rating == rating:
+                movie_rating_id = key
+        for key, genre in GENRE_LIST.items():
+            if top_item.movie_genre[0] == genre:
+                movie_genre_id = key
+        insert_movie = '''
+            INSERT INTO Movies
+            VALUES (NULL, ?, ?, ?, ?, ?, ?, ?)
+        '''
+        movie = [top_item.movie_title, movie_rating_id, top_item.movie_country,
+                 int(top_item.movie_release_year), int(movie_genre_id), top_item.movie_length, float(top_item.movie_num_rating)]
+        cur.execute(insert_movie, movie)
+    # else:
+    #     # show_title, show_air_years, show_tv_rating, show_genre, show_type, show_length, show_num_rating
+    #     show =
+    #     insert_show = '''
+    #     INSERT INTO Shows
+    #     VALUES (NULL, ?, ?, ?, ?, ?, ?, ?)
+    # '''
 
     conn.commit()
     conn.close()
@@ -125,7 +184,7 @@ def save_cache(cache):
 
     Parameters
     ----------
-    cache_dict: dict
+    cache: dict
         The dictionary to save
 
     Returns
@@ -265,11 +324,13 @@ def get_top_movie_info(top_media_url):
         movie_title = movie_info.text.split('(')[0].strip()
         movie_release_year = movie_info.text.split('(')[1][0:4].strip()
     movie_rating = soup.find(class_='subtext')
-    if movie_rating == None:
+    if movie_rating == None or 'Not' in movie_rating.text:
         movie_rating = 'Not Rated'
-    else:
+    elif movie_rating.text.split()[0] in RATINGS_LIST.values():
         movie_rating = movie_rating.text.split()[0].strip()
-    movie_genre = movie_details_list[1]
+    else:
+        movie_rating = 'Not Rated'
+    movie_genre = movie_details_list[1:-1]
     if movie_genre == 'None':
         movie_genre = 'No Genre'
     movie_country = movie_details_list[-1]
@@ -379,7 +440,7 @@ def get_sites_for_movies_or_shows(top_media_type, top_url, item_count):
     for top in tops:
         top_media_url = top.find('a')['href']
         top_media_url = BASE_URL + top_media_url
-        if len(top_movies_list) == item_count or len(top_shows_list) == item_count:
+        if len(top_movies_list) == 10 or len(top_shows_list) == 10:
             break
         else:
             if top_media_type == 'movies':
@@ -399,7 +460,7 @@ if __name__ == "__main__":
         item_count = input('How many items per media type would you like info on you want to see (min 50, max 250)? Or type "exit" to quit: ')
         if item_count.lower() == 'exit':
             exit()
-        if item_count.isdigit:
+        if item_count.isdigit():
             if int(item_count) < 50 or int(item_count) > 250:
                 print(item_count)
                 print('[Error] Incorrect input!')
@@ -416,6 +477,7 @@ if __name__ == "__main__":
                         count += 1
                         top_rated_dict[count] = top_item.info()
                         print(f"[{count}] {top_item.info()}")
+                        populate_database(top_media_type.lower(), top_item)
                     print()
         else:
             print(item_count)
