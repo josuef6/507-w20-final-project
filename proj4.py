@@ -7,6 +7,7 @@ from bs4 import BeautifulSoup
 import requests
 import json
 import time
+import sqlite3
 
 BASE_URL = 'https://www.imdb.com'
 TOP_RATED_DICT = {'movies': 'https://www.imdb.com/chart/top/?ref_=nv_mv_250',
@@ -19,7 +20,83 @@ headers = {
     'From': 'josuef@umich.edu',
     'Course-Info': 'https://si.umich.edu/programs/courses/507'
 }
+############### DATABASE FUNCTIONS ###############
+def create_database():
+    conn = sqlite3.connect("project4.sqlite")
+    cur = conn.cursor()
 
+    drop_movies = '''
+        DROP TABLE IF EXISTS "Movies";
+    '''
+    create_movies = '''
+        CREATE TABLE IF NOT EXISTS "Movies" (
+            "Id"            INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE,
+            "MovieTitle"    TEXT NOT NULL,
+            "FilmRating"    TEXT NOT NULL,
+            "Country"       TEXT NOT NULL,
+            "ReleaseYear"   INTEGER NOT NULL,
+            "Genre"         TEXT NOT NULL,
+            "Length"        TEXT NOT NULL,
+            "NumberRating"  REAL NOT NULL
+        );
+    '''
+    drop_movie_genres = '''
+        DROP TABLE IF EXISTS 'MovieGenres';
+    '''
+    create_movie_genres = '''
+        CREATE TABLE 'MovieGenres' (
+        'Id'            INTEGER PRIMARY KEY AUTOINCREMENT,
+        "GenreName"     TEXT NOT NULL
+        );
+    '''
+    cur.execute(drop_movies)
+    cur.execute(create_movies)
+    cur.execute(drop_movie_genres)
+    cur.execute(create_movie_genres)
+
+    drop_shows = '''
+        DROP TABLE IF EXISTS 'Shows';
+    '''
+    create_shows = '''
+        CREATE TABLE 'Shows' (
+        'Id'            INTEGER PRIMARY KEY AUTOINCREMENT,
+        "ShowTitle"     TEXT NOT NULL,
+        "ShowRating"    TEXT NOT NULL,
+        "YearsAired"    TEXT NOT NULL,
+        "Genres"        TEXT NOT NULL,
+        "ShowType"      TEXT NOT NULL,
+        "Length"        TEXT NOT NULL,
+        "NumberRating"  REAL NOT NULL
+        );
+    '''
+    drop_show_types = '''
+        DROP TABLE IF EXISTS 'ShowTypes';
+    '''
+    create_show_types = '''
+        CREATE TABLE 'ShowTypes' (
+        'Id'            INTEGER PRIMARY KEY AUTOINCREMENT,
+        "ShowType"      TEXT NOT NULL
+        );
+    '''
+    cur.execute(drop_show_types)
+    cur.execute(create_show_types)
+    cur.execute(drop_shows)
+    cur.execute(create_shows)
+
+    drop_rating_types = '''
+        DROP TABLE IF EXISTS 'RatingTypes';
+    '''
+    create_rating_types = '''
+        CREATE TABLE 'RatingTypes' (
+        'Id'            INTEGER PRIMARY KEY AUTOINCREMENT,
+        "RatingType"      TEXT NOT NULL
+        );
+    '''
+    cur.execute(drop_rating_types)
+    cur.execute(create_rating_types)
+
+    conn.commit()
+    conn.close()
 ############### CACHE FUNCTIONS ###############
 def load_cache():
     ''' Opens the cache file if it exists and loads the JSON into
@@ -121,8 +198,7 @@ class TopMovieShow:
         self.movie_num_rating = movie_num_rating
 
     def info(self):
-        return (f"{self.movie_title} Rated:{self.movie_rating} ({self.movie_country}, {self.movie_release_year}): {self.movie_genre} {self.movie_length} {self.movie_num_rating} out of 10.")
-
+        return (f"{self.movie_title} Rated: {self.movie_rating} ({self.movie_country}, {self.movie_release_year}): {self.movie_genre} {self.movie_length} {self.movie_num_rating} out of 10.")
 
 class TopRatedShow:
     '''Top Rated Show
@@ -329,6 +405,7 @@ if __name__ == "__main__":
                 print('[Error] Incorrect input!')
                 continue
             else:
+                create_database()
                 for top_media_type, top_media_url in TOP_RATED_DICT.items():
                     print(f'Getting Top Rated {top_media_type.capitalize()}!')
                     top_url = top_media_url
