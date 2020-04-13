@@ -12,14 +12,14 @@ import sqlite3
 BASE_URL = 'https://www.imdb.com'
 TOP_RATED_DICT = {'movies': 'https://www.imdb.com/chart/top/?ref_=nv_mv_250',
                   'shows': 'https://www.imdb.com/chart/toptv/?ref_=nv_tvv_250'}
-GENRE_LIST = {1: 'Action', 2: 'Adventure', 3: 'Animation', 4: 'Biography', 5: 'Comedy',
-              6: 'Crime', 7: 'Drama', 8: 'Family', 9: 'Fantasy', 10: 'Film-Noir', 11: 'History',
-              12: 'Horror', 13: 'Music', 14: 'Musical', 15: 'Mystery', 16: 'Romance', 17: 'Sci-Fi',
-              18: 'Sport', 19: 'Thriller', 20: 'War', 21: 'Western'}
+GENRE_LIST = {  1: 'Action', 2: 'Adventure', 3: 'Animation', 4: 'Biography', 5: 'Comedy', 6: 'Crime',
+                7: 'Documentary', 8: 'Drama', 9: 'Family', 10: 'Fantasy', 11: 'Film-Noir', 12: 'History',
+                13: 'Horror', 14: 'Music', 15: 'Musical', 16: 'Mystery', 17: 'Reality-TV', 18: 'Romance',
+                19: 'Sci-Fi', 20: 'Sport', 21: 'Talk-Show', 22: 'Thriller', 23: 'War', 24: 'Western'}
 SHOW_TYPE_LIST = {1: 'TV Series', 2: 'TV Mini-Series'}
-RATINGS_LIST = {1: 'G', 2: 'M', 3: 'R', 4: 'X', 5: 'GP', 6: 'PG', 7: 'PG-13', 8: 'NC-17', 9: 'TV-Y',
-                10: 'TV-Y7', 11: 'TV-Y7 FV', 12: 'TV-G', 13: 'TV-PG', 14: 'TV-14', 15: 'TV-MA', 16: 'Approved',
-                17: 'Passed', 18: 'Not Rated'}
+RATINGS_LIST = {1: 'G', 2: 'GP', 3: 'PG', 4: 'PG-13', 5: 'NC-17', 6: 'M', 7: 'R', 8: 'X', 9: 'TV-Y',
+                10: 'TV-Y7', 11: 'TV-Y7-FV', 12: 'TV-G', 13: 'TV-PG', 14: 'TV-14', 15: 'TV-MA',
+                16: 'Approved', 17: 'Passed', 18: 'Not Rated'}
 CACHE_FILE_NAME = 'cache.json'
 CACHE_DICT = {}
 
@@ -60,7 +60,7 @@ def create_database():
         "ShowTitle"     TEXT NOT NULL,
         "ShowRatingId"  INTEGER NOT NULL,
         "YearsAired"    TEXT NOT NULL,
-        "Genres"        TEXT NOT NULL,
+        "FirstGenreId"  INTEGER NOT NULL,
         "ShowTypeId"    INTEGER NOT NULL,
         "Length"        TEXT NOT NULL,
         "NumberRating"  REAL NOT NULL
@@ -86,22 +86,22 @@ def create_database():
     create_genres = '''
         CREATE TABLE 'Genres' (
         'Id'            INTEGER PRIMARY KEY AUTOINCREMENT,
-        "GenreName"     TEXT NOT NULL
+        "Genre"     TEXT NOT NULL
         );
     '''
-    drop_rating_types = '''
-        DROP TABLE IF EXISTS 'RatingTypes';
+    drop_ratings = '''
+        DROP TABLE IF EXISTS 'Ratings';
     '''
-    create_rating_types = '''
-        CREATE TABLE 'RatingTypes' (
+    create_ratings = '''
+        CREATE TABLE 'Ratings' (
         'Id'            INTEGER PRIMARY KEY AUTOINCREMENT,
-        "RatingType"      TEXT NOT NULL
+        "Rating"      TEXT NOT NULL
         );
     '''
     cur.execute(drop_genres)
     cur.execute(create_genres)
-    cur.execute(drop_rating_types)
-    cur.execute(create_rating_types)
+    cur.execute(drop_ratings)
+    cur.execute(create_ratings)
 
     conn.commit()
 
@@ -109,20 +109,19 @@ def create_database():
         INSERT INTO Genres
         VALUES (NULL, ?)
     '''
-    for key, genre in GENRE_LIST.items():
+    for genre in GENRE_LIST.values():
         cur.execute(insert_genres, [genre])
     insert_show_types = '''
         INSERT INTO ShowTypes
         VALUES (NULL, ?)
     '''
-    for key, show_type in SHOW_TYPE_LIST.items():
+    for show_type in SHOW_TYPE_LIST.values():
         cur.execute(insert_show_types, [show_type])
-
     insert_ratings = '''
-        INSERT INTO RatingTypes
+        INSERT INTO Ratings
         VALUES (NULL, ?)
     '''
-    for key, rating in RATINGS_LIST.items():
+    for rating in RATINGS_LIST.values():
         cur.execute(insert_ratings, [rating])
     conn.commit()
     conn.close()
@@ -130,29 +129,34 @@ def create_database():
 def populate_database(top_media_type, top_item):
     conn = sqlite3.connect("project4.sqlite")
     cur = conn.cursor()
-    movie_rating_id = ''
-    movie_genre_id = ''
+    rating_id = ''
+    genre_id = ''
+    show_type_id = ''
+    for key, rating in RATINGS_LIST.items():
+        if top_item.rating == rating:
+            rating_id = key
+    for key, genre in GENRE_LIST.items():
+        if top_item.genre[0] == genre:
+            genre_id = key
     if top_media_type == 'movies':
-        for key, rating in RATINGS_LIST.items():
-            if top_item.movie_rating == rating:
-                movie_rating_id = key
-        for key, genre in GENRE_LIST.items():
-            if top_item.movie_genre[0] == genre:
-                movie_genre_id = key
         insert_movie = '''
             INSERT INTO Movies
             VALUES (NULL, ?, ?, ?, ?, ?, ?, ?)
         '''
-        movie = [top_item.movie_title, movie_rating_id, top_item.movie_country,
-                 int(top_item.movie_release_year), int(movie_genre_id), top_item.movie_length, float(top_item.movie_num_rating)]
+        movie = [top_item.title, rating_id, top_item.country, int(top_item.release_year),
+                genre_id, top_item.length, float(top_item.num_rating)]
         cur.execute(insert_movie, movie)
-    # else:
-    #     # show_title, show_air_years, show_tv_rating, show_genre, show_type, show_length, show_num_rating
-    #     show =
-    #     insert_show = '''
-    #     INSERT INTO Shows
-    #     VALUES (NULL, ?, ?, ?, ?, ?, ?, ?)
-    # '''
+    else:
+        for key, show_type in SHOW_TYPE_LIST.items():
+            if top_item.show_type == show_type:
+                show_type_id = key
+        insert_show = '''
+        INSERT INTO Shows
+        VALUES (NULL, ?, ?, ?, ?, ?, ?, ?)
+        '''
+        show = [top_item.title, rating_id, top_item.air_years, genre_id,
+                show_type_id, top_item.length, float(top_item.num_rating)]
+        cur.execute(insert_show, show)
 
     conn.commit()
     conn.close()
@@ -231,65 +235,65 @@ class TopMovieShow:
 
     Instance Attributes
     -------------------
-    movie_title: string
+    title: string
         the title of a top rated movie
-    movie_release_year: string
+    release_year: string
         the release year of a movie
-    movie_rating: string
+    rating: string
         the rating of a movie (e.g. 'PG', 'R')
-    movie_genre: string
+    genre: string
         the genre of a movie (e.g. 'Action', 'Horror')
-    movie_country: string
+    country: string
         the country alpha-3 code (e.g. 'USA', 'GER')
-    movie_length: string
+    length: string
         the total length (time) of a movie
-    movie_num_rating: string
+    num_rating: string
         the overall rating of a movie (out of 10)
     '''
 
-    def __init__(self, movie_title, movie_release_year, movie_rating, movie_genre, movie_country, movie_length, movie_num_rating):
-        self.movie_title = movie_title
-        self.movie_release_year = movie_release_year
-        self.movie_rating = movie_rating
-        self.movie_genre = movie_genre
-        self.movie_country = movie_country
-        self.movie_length = movie_length
-        self.movie_num_rating = movie_num_rating
+    def __init__(self, title, release_year, rating, genre, country, length, num_rating):
+        self.title = title
+        self.release_year = release_year
+        self.rating = rating
+        self.genre = genre
+        self.country = country
+        self.length = length
+        self.num_rating = num_rating
 
     def info(self):
-        return (f"{self.movie_title} Rated: {self.movie_rating} ({self.movie_country}, {self.movie_release_year}): {self.movie_genre} {self.movie_length} {self.movie_num_rating} out of 10.")
+        return (f"{self.title} Rated: {self.rating} ({self.country}, {self.release_year}): {self.genre} {self.length} {self.num_rating} out of 10.")
 
 class TopRatedShow:
     '''Top Rated Show
 
     Instance Attributes
     -------------------
-    show_title: string
+    title: string
         the title of a top rated TV show
-    show_air_years: string
+    air_years: string
         the number of years of a TV show aired site
-    show_rating: string
+    rating: string
         the rating of a TV show (e.g. 'TV-G')
-    show_genre: string
+    genre: string
         the genre of a TV show (e.g. 'Documentary', 'Crime')
     show_type: string
         the type of a TV show (e.g. 'TV Mini Series', 'TV Series')
-    show_length: string
+    length: string
         the total length (time) of an entire TV series or individual episodes
-    show_num_rating: string
+    num_rating: string
         the overall rating of a TV show (out of 10)
     '''
-    def __init__(self, show_title, show_air_years, show_tv_rating, show_genre, show_type, show_length, show_num_rating):
-        self.show_title = show_title
-        self.show_air_years = show_air_years
-        self.show_tv_rating = show_tv_rating
-        self.show_genre = show_genre
+    def __init__(self, title, air_years, rating, genre, show_type, length, num_rating):
+        self.title = title
+        self.air_years = air_years
+        self.rating = rating
+        self.genre = genre
         self.show_type = show_type
-        self.show_length = show_length
-        self.show_num_rating = show_num_rating
+        self.length = length
+        self.num_rating = num_rating
 
     def info(self):
-        return (f"{self.show_title} Rated: {self.show_tv_rating} ({self.show_air_years}): Genre(s) - {self.show_genre} {self.show_type} {self.show_length} {self.show_num_rating} out of 10.")
+        return (f"{self.title} Rated: {self.rating} ({self.air_years}): Genre(s) - {self.genre} {self.show_type} {self.length} {self.num_rating} out of 10.")
 
 def get_top_movie_info(top_media_url):
     '''Make an instances from a top rated movies's URL.
@@ -318,38 +322,38 @@ def get_top_movie_info(top_media_url):
             movie_details_list.append(detail.text.strip())
 
     if movie_info.find('h1') == None:
-        movie_title = 'No Title'
-        movie_release_year = 'No Release Year'
+        title = 'No Title'
+        release_year = 'No Release Year'
     else:
-        movie_title = movie_info.text.split('(')[0].strip()
-        movie_release_year = movie_info.text.split('(')[1][0:4].strip()
-    movie_rating = soup.find(class_='subtext')
-    if movie_rating == None or 'Not' in movie_rating.text:
-        movie_rating = 'Not Rated'
-    elif movie_rating.text.split()[0] in RATINGS_LIST.values():
-        movie_rating = movie_rating.text.split()[0].strip()
+        title = movie_info.text.split('(')[0].strip()
+        release_year = movie_info.text.split('(')[1][0:4].strip()
+    rating = soup.find(class_='subtext')
+    if rating == None or 'Not' in rating.text:
+        rating = 'Not Rated'
+    elif rating.text.split()[0] in RATINGS_LIST.values():
+        rating = rating.text.split()[0].strip()
     else:
-        movie_rating = 'Not Rated'
-    movie_genre = movie_details_list[1:-1]
-    if movie_genre == 'None':
-        movie_genre = 'No Genre'
-    movie_country = movie_details_list[-1]
-    if movie_country == 'None':
-        movie_country = 'No Country'
+        rating = 'Not Rated'
+    genre = movie_details_list[1:-1]
+    if genre == 'None':
+        genre = 'No Genre'
+    country = movie_details_list[-1]
+    if country == 'None':
+        country = 'No Country'
     else:
-        movie_country = movie_country.split('(')[1].strip()[:-1]
-    movie_length = soup.find('time')
-    if movie_length == None:
-        movie_length = 'No Length'
+        country = country.split('(')[1].strip()[:-1]
+    length = soup.find('time')
+    if length == None:
+        length = 'No Length'
     else:
-        movie_length = movie_length.text.strip()
-    movie_num_rating = soup.find(class_='ratingValue')
-    if movie_num_rating == None:
-        movie_num_rating = 'No Rating'
+        length = length.text.strip()
+    num_rating = soup.find(class_='ratingValue')
+    if num_rating == None:
+        num_rating = 'No Rating'
     else:
-        movie_num_rating = movie_num_rating.text.strip().split('/')[0]
+        num_rating = num_rating.text.strip().split('/')[0]
 
-    top_movie = TopMovieShow(movie_title, movie_release_year, movie_rating, movie_genre, movie_country, movie_length, movie_num_rating)
+    top_movie = TopMovieShow(title, release_year, rating, genre, country, length, num_rating)
     return top_movie
 
 def get_top_show_info(top_media_url):
@@ -378,41 +382,41 @@ def get_top_show_info(top_media_url):
         else:
             show_details_list.append(detail.text.strip())
 
-    show_title = show_info.find('h1')
-    if show_title == None:
-        show_title = 'No Title'
+    title = show_info.find('h1')
+    if title == None:
+        title = 'No Title'
     else:
-        show_title = show_title.text.strip()
-    show_tv_rating = soup.find(class_='subtext')
-    if show_tv_rating == None or 'TV-' not in show_tv_rating.text.split()[0]:
-        show_tv_rating = 'Not Rated'
+        title = title.text.strip()
+    rating = soup.find(class_='subtext')
+    if rating == None or 'TV-' not in rating.text.split()[0]:
+        rating = 'Not Rated'
     else:
-        show_tv_rating = show_tv_rating.text.split()[0].strip()
-    show_air_years = show_details_list[-1]
-    if show_air_years == 'None':
-        show_air_years = 'No Air Year(s)'
+        rating = rating.text.split()[0].strip()
+    air_years = show_details_list[-1]
+    if air_years == 'None':
+        air_years = 'No Air Year(s)'
     else:
-        show_air_years = show_air_years.split('(')[1][:-1]
-    show_genre = show_details_list[:-1]
-    if 'None' in show_genre:
-        show_genre = 'No Genre'
+        air_years = air_years.split('(')[1][:-1]
+    genre = show_details_list[:-1]
+    if 'None' in genre:
+        genre = 'No Genre'
     show_type = show_details_list[-1]
     if show_type == 'None':
         show_type = 'No Type'
     else:
         show_type = show_type.split('(')[0].strip()
-    show_length = soup.find('time')
-    if show_length == None:
-        show_length = 'No Length'
+    length = soup.find('time')
+    if length == None:
+        length = 'No Length'
     else:
-        show_length = show_length.text.strip()
-    show_num_rating = soup.find(class_='ratingValue')
-    if show_num_rating == None:
-        show_num_rating = 'No Rating'
+        length = length.text.strip()
+    num_rating = soup.find(class_='ratingValue')
+    if num_rating == None:
+        num_rating = 'No Rating'
     else:
-        show_num_rating = show_num_rating.text.strip().split('/')[0]
+        num_rating = num_rating.text.strip().split('/')[0]
 
-    top_show = TopRatedShow(show_title, show_air_years, show_tv_rating, show_genre, show_type, show_length, show_num_rating)
+    top_show = TopRatedShow(title, air_years, rating, genre, show_type, length, num_rating)
     return top_show
 
 def get_sites_for_movies_or_shows(top_media_type, top_url, item_count):
@@ -444,8 +448,8 @@ def get_sites_for_movies_or_shows(top_media_type, top_url, item_count):
             break
         else:
             if top_media_type == 'movies':
-                top_instance = get_top_movie_info(top_media_url)
-                top_movies_list.append(top_instance)
+                    top_instance = get_top_movie_info(top_media_url)
+                    top_movies_list.append(top_instance)
             else:
                 top_instance = get_top_show_info(top_media_url)
                 top_shows_list.append(top_instance)
