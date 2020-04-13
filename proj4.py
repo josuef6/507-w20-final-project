@@ -9,14 +9,11 @@ import json
 import time
 
 BASE_URL = 'https://www.imdb.com'
-MOVIES_URL = 'https://www.imdb.com/chart/top/?ref_=nv_mv_250'
-TV_URL = 'https://www.imdb.com/chart/toptv/?ref_=nv_tvv_250'
-
 CACHE_FILE_NAME = 'cache.json'
 CACHE_DICT = {}
 
 headers = {
-    'User-Agent': 'UMSI 507 Course Project - Python Scraping',
+    'User-Agent': 'UMSI 507 Final Project - Python Crawling and Scraping',
     'From': 'josuef@umich.edu',
     'Course-Info': 'https://si.umich.edu/programs/courses/507'
 }
@@ -113,37 +110,16 @@ class TopMovieShow:
     '''
 
     def __init__(self, movie_title, movie_release_year, movie_rating, movie_genre, movie_country, movie_length, movie_num_rating):
-        if movie_title == None:
-            self.movie_title = 'No Title'
-        else:
-            self.movie_title = movie_title
-        if movie_release_year == None:
-            self.movie_release_year = 'No Release Year'
-        else:
-            self.movie_release_year = movie_release_year
-        if movie_rating == None:
-            self.movie_rating = 'No Rating'
-        else:
-            self.movie_rating = movie_rating
-        if movie_genre == None:
-            self.movie_genre = 'No Genre'
-        else:
-            self.movie_genre = movie_genre
-        if movie_country == None:
-            self.movie_country = 'No Country'
-        else:
-            self.movie_country = movie_country
-        if movie_length == None:
-            self.movie_length = 'No Length'
-        else:
-            self.movie_length = movie_length
-        if movie_num_rating == None:
-            self.movie_num_rating = 'No Num Rating'
-        else:
-            self.movie_num_rating = movie_num_rating
+        self.movie_title = movie_title
+        self.movie_release_year = movie_release_year
+        self.movie_rating = movie_rating
+        self.movie_genre = movie_genre
+        self.movie_country = movie_country
+        self.movie_length = movie_length
+        self.movie_num_rating = movie_num_rating
 
     def info(self):
-        return (f"{self.movie_title} ({self.movie_country}, {self.movie_release_year}): Is a {self.movie_genre} film rated {self.movie_rating}, {self.movie_length} long with a {self.movie_num_rating} rating out of 10.")
+        return (f"{self.movie_title} Rated:{self.movie_rating} ({self.movie_country}, {self.movie_release_year}): {self.movie_genre} {self.movie_length} {self.movie_num_rating} out of 10.")
 
 
 class TopRatedShow:
@@ -167,37 +143,16 @@ class TopRatedShow:
         the overall rating of a TV show (out of 10)
     '''
     def __init__(self, show_title, show_air_years, show_tv_rating, show_genre, show_type, show_length, show_num_rating):
-        if show_title == None:
-            self.show_title = 'No Title'
-        else:
-            self.show_title = show_title
-        if show_air_years == None:
-            self.show_air_years = 'No Air Year(s)'
-        else:
-            self.show_air_years = show_air_years
-        if show_tv_rating == None:
-            self.show_tv_rating = 'No Rating'
-        else:
-            self.show_tv_rating = show_tv_rating
-        if show_genre == None:
-            self.show_genre = 'No Genre'
-        else:
-            self.show_genre = show_genre
-        if show_type == None:
-            self.show_type = 'No Show Type'
-        else:
-            self.show_type = show_type
-        if show_length == None:
-            self.show_length = 'No Length'
-        else:
-            self.show_length = show_length
-        if show_num_rating == None:
-            self.show_num_rating = 'No Num Rating'
-        else:
-            self.show_num_rating = show_num_rating
+        self.show_title = show_title
+        self.show_air_years = show_air_years
+        self.show_tv_rating = show_tv_rating
+        self.show_genre = show_genre
+        self.show_type = show_type
+        self.show_length = show_length
+        self.show_num_rating = show_num_rating
 
     def info(self):
-        return (f"{self.show_title} ({self.show_air_years}): Is a {self.show_type} rated {self.show_tv_rating}, Genre(s) - {self.show_genre}, {self.show_length} long with a {self.show_num_rating} rating out of 10.")
+        return (f"{self.show_title} Rated: {self.show_tv_rating} ({self.show_air_years}): Genre(s) - {self.show_genre} {self.show_type} {self.show_length} {self.show_num_rating} out of 10.")
 
 def get_top_movie_info(top_movie_url):
     '''Make an instances from a top rated movies's URL.
@@ -220,19 +175,40 @@ def get_top_movie_info(top_movie_url):
     movie_details_list = []
     movie_details = movie_info.find_all('a')
     for detail in movie_details:
-        movie_details_list.append(detail.text.strip())
+        if detail == None:
+            movie_details_list.append('None')
+        else:
+            movie_details_list.append(detail.text.strip())
 
-    movie_title = movie_info.find('h1').text.split('(')[0].strip()
-    movie_release_year = movie_info.find('h1').text.split('(')[1].strip()[:-1]
-    movie_rating = soup.find(class_='subtext').text.split()[0].strip()
+    if movie_info.find('h1') == None:
+        movie_title = 'No Title'
+        movie_release_year = 'No Release Year'
+    else:
+        movie_title = movie_info.text.split('(')[0].strip()
+        movie_release_year = movie_info.text.split('(')[1].strip()[:-1]
+    movie_rating = soup.find(class_='subtext')
+    if movie_rating == None:
+        movie_rating = 'Not Rated'
+    else:
+        movie_rating = movie_rating.text.split()[0].strip()
     movie_genre = movie_details_list[1]
-    movie_country = movie_details_list[-1].split('(')[1].strip()[:-1]
+    if movie_genre == 'None':
+        movie_genre = 'No Genre'
+    movie_country = movie_details_list[-1]
+    if movie_country == 'None':
+        movie_country = 'No Country'
+    else:
+        movie_country = movie_country.split('(')[1].strip()[:-1]
     movie_length = soup.find('time')
     if movie_length == None:
         movie_length = 'No Length'
     else:
         movie_length = movie_length.text.strip()
-    movie_num_rating = soup.find(class_='ratingValue').text.strip().split('/')[0]
+    movie_num_rating = soup.find(class_='ratingValue')
+    if movie_num_rating == None:
+        movie_num_rating = 'No Rating'
+    else:
+        movie_num_rating = movie_num_rating.text.strip().split('/')[0]
 
     top_movie = TopMovieShow(movie_title, movie_release_year, movie_rating, movie_genre, movie_country, movie_length, movie_num_rating)
     return top_movie
@@ -258,19 +234,44 @@ def get_top_show_info(top_show_url):
 
     show_details = show_info.find_all('a')
     for detail in show_details:
-        show_details_list.append(detail.text.strip())
+        if detail == None:
+            show_details_list.append('None')
+        else:
+            show_details_list.append(detail.text.strip())
 
-    show_title = show_info.find('h1').text.strip()
-    show_air_years = show_details_list[-1].split('(')[1][:-1]
-    show_tv_rating = soup.find(class_='subtext').text.split()[0].strip()
+    show_title = show_info.find('h1')
+    if show_title == None:
+        show_title = 'No Title'
+    else:
+        show_title = show_title.text.strip()
+    show_tv_rating = soup.find(class_='subtext')
+    if show_tv_rating == None or 'TV-' not in show_tv_rating.text.split()[0]:
+        show_tv_rating = 'Not Rated'
+    else:
+        show_tv_rating = show_tv_rating.text.split()[0].strip()
+    show_air_years = show_details_list[-1]
+    if show_air_years == 'None':
+        show_air_years = 'No Air Year(s)'
+    else:
+        show_air_years = show_air_years.split('(')[1][:-1]
     show_genre = show_details_list[:-1]
-    show_type = show_details_list[-1].split('(')[0].strip()
+    if 'None' in show_genre:
+        show_genre = 'No Genre'
+    show_type = show_details_list[-1]
+    if show_type == 'None':
+        show_type = 'No Type'
+    else:
+        show_type = show_type.split('(')[0].strip()
     show_length = soup.find('time')
     if show_length == None:
         show_length = 'No Length'
     else:
         show_length = show_length.text.strip()
-    show_num_rating = soup.find(class_='ratingValue').text.strip().split('/')[0]
+    show_num_rating = soup.find(class_='ratingValue')
+    if show_num_rating == None:
+        show_num_rating = 'No Rating'
+    else:
+        show_num_rating = show_num_rating.text.strip().split('/')[0]
 
     top_show = TopRatedShow(show_title, show_air_years, show_tv_rating, show_genre, show_type, show_length, show_num_rating)
     return top_show
@@ -327,6 +328,7 @@ if __name__ == "__main__":
         if top_media_type.lower() not in top_rated_dict.keys():
             print('[Error] Incorrect input!')
         else:
+            print(f'Getting Top Rated {top_media_type.capitalize()}!')
             top_url = top_rated_dict[top_media_type.lower()]
             top_rated_list = get_sites_for_movies_or_shows(top_media_type.lower(), top_url)
             top_rated_dict = {}
@@ -334,7 +336,7 @@ if __name__ == "__main__":
             for top_item in top_rated_list:
                 count += 1
                 top_rated_dict[count] = top_item.info()
-                print(f"[{count}] {top_item.movie_title}")
+                print(f"[{count}] {top_item.info()}")
             print()
             print('This is the end of the program. Goodbye!')
             exit()
