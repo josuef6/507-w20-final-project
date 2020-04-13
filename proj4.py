@@ -9,6 +9,8 @@ import json
 import time
 
 BASE_URL = 'https://www.imdb.com'
+TOP_RATED_DICT = {'movies': 'https://www.imdb.com/chart/top/?ref_=nv_mv_250',
+                  'shows': 'https://www.imdb.com/chart/toptv/?ref_=nv_tvv_250'}
 CACHE_FILE_NAME = 'cache.json'
 CACHE_DICT = {}
 
@@ -154,12 +156,12 @@ class TopRatedShow:
     def info(self):
         return (f"{self.show_title} Rated: {self.show_tv_rating} ({self.show_air_years}): Genre(s) - {self.show_genre} {self.show_type} {self.show_length} {self.show_num_rating} out of 10.")
 
-def get_top_movie_info(top_movie_url):
+def get_top_movie_info(top_media_url):
     '''Make an instances from a top rated movies's URL.
 
     Parameters
     ----------
-    top_movie_url: string
+    top_media_url: string
         The URL for a top movie page on imdb.com
 
     Returns
@@ -168,7 +170,7 @@ def get_top_movie_info(top_movie_url):
         a top rated movie instance
     '''
     CACHE_DICT = load_cache()
-    url_text = make_url_request_using_cache(top_movie_url, CACHE_DICT)
+    url_text = make_url_request_using_cache(top_media_url, CACHE_DICT)
     soup = BeautifulSoup(url_text, 'html.parser')
     movie_info = soup.find(class_='title_wrapper')
 
@@ -185,7 +187,7 @@ def get_top_movie_info(top_movie_url):
         movie_release_year = 'No Release Year'
     else:
         movie_title = movie_info.text.split('(')[0].strip()
-        movie_release_year = movie_info.text.split('(')[1].strip()[:-1]
+        movie_release_year = movie_info.text.split('(')[1][0:4].strip()
     movie_rating = soup.find(class_='subtext')
     if movie_rating == None:
         movie_rating = 'Not Rated'
@@ -213,12 +215,12 @@ def get_top_movie_info(top_movie_url):
     top_movie = TopMovieShow(movie_title, movie_release_year, movie_rating, movie_genre, movie_country, movie_length, movie_num_rating)
     return top_movie
 
-def get_top_show_info(top_show_url):
+def get_top_show_info(top_media_url):
     '''Make an instances from a top rated show's URL.
 
     Parameters
     ----------
-    top_show_url: string
+    top_media_url: string
         The URL for a top show page on imdb.com
 
     Returns
@@ -228,7 +230,7 @@ def get_top_show_info(top_show_url):
     '''
     CACHE_DICT = load_cache()
     show_details_list = []
-    url_text = make_url_request_using_cache(top_show_url, CACHE_DICT)
+    url_text = make_url_request_using_cache(top_media_url, CACHE_DICT)
     soup = BeautifulSoup(url_text, 'html.parser')
     show_info = soup.find(class_='title_wrapper')
 
@@ -276,7 +278,7 @@ def get_top_show_info(top_show_url):
     top_show = TopRatedShow(show_title, show_air_years, show_tv_rating, show_genre, show_type, show_length, show_num_rating)
     return top_show
 
-def get_sites_for_movies_or_shows(top_media_type, top_url):
+def get_sites_for_movies_or_shows(top_media_type, top_url, item_count):
     '''Make a list of movie/tv show instances from a movie/tv show URL.
 
     Parameters
@@ -299,44 +301,48 @@ def get_sites_for_movies_or_shows(top_media_type, top_url):
     tops = top_list.find_all('td', class_='titleColumn')
 
     for top in tops:
-        top_url = top.find('a')['href']
-        top_full_url = BASE_URL + top_url
-    # if len(top_movies_list) == 10 or len(top_shows_list) == 10:
-    #     break
-    # else:
-        if top_media_type == 'movies':
-            top_instance = get_top_movie_info(top_full_url)
-            top_movies_list.append(top_instance)
+        top_media_url = top.find('a')['href']
+        top_media_url = BASE_URL + top_media_url
+        if len(top_movies_list) == item_count or len(top_shows_list) == item_count:
+            break
         else:
-            top_instance = get_top_show_info(top_full_url)
-            top_shows_list.append(top_instance)
+            if top_media_type == 'movies':
+                top_instance = get_top_movie_info(top_media_url)
+                top_movies_list.append(top_instance)
+            else:
+                top_instance = get_top_show_info(top_media_url)
+                top_shows_list.append(top_instance)
     if top_media_type == 'movies':
         return top_movies_list
     else:
         return top_shows_list
 
 if __name__ == "__main__":
-    top_rated_dict = {'movies': 'https://www.imdb.com/chart/top/?ref_=nv_mv_250',
-                        'shows': 'https://www.imdb.com/chart/toptv/?ref_=nv_tvv_250'}
+    print('Welcome! We are here to help you find information on the top 250 rated movies and tv shows!')
     while True:
-        top_media_type = input('Please indicate whether you want info for top rated movies or tv shows (e.g. Movies, movies, Shows, show) or "exit": ')
-        if top_media_type.lower() == 'exit':
+        item_count = input('How many items per media type would you like info on you want to see (min 50, max 250)? Or type "exit" to quit: ')
+        if item_count.lower() == 'exit':
             exit()
-        if top_media_type.isdigit == True:
+        if item_count.isdigit:
+            if int(item_count) < 50 or int(item_count) > 250:
+                print(item_count)
+                print('[Error] Incorrect input!')
+                continue
+            else:
+                for top_media_type, top_media_url in TOP_RATED_DICT.items():
+                    print(f'Getting Top Rated {top_media_type.capitalize()}!')
+                    top_url = top_media_url
+                    top_rated_list = get_sites_for_movies_or_shows(top_media_type.lower(), top_url, int(item_count))
+                    top_rated_dict = {}
+                    count = 0
+                    for top_item in top_rated_list:
+                        count += 1
+                        top_rated_dict[count] = top_item.info()
+                        print(f"[{count}] {top_item.info()}")
+                    print()
+        else:
+            print(item_count)
             print('[Error] Incorrect input!')
             continue
-        if top_media_type.lower() not in top_rated_dict.keys():
-            print('[Error] Incorrect input!')
-        else:
-            print(f'Getting Top Rated {top_media_type.capitalize()}!')
-            top_url = top_rated_dict[top_media_type.lower()]
-            top_rated_list = get_sites_for_movies_or_shows(top_media_type.lower(), top_url)
-            top_rated_dict = {}
-            count = 0
-            for top_item in top_rated_list:
-                count += 1
-                top_rated_dict[count] = top_item.info()
-                print(f"[{count}] {top_item.info()}")
-            print()
-            print('This is the end of the program. Goodbye!')
-            exit()
+        print('This is the end of the program. Goodbye!')
+        exit()
