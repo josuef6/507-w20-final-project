@@ -85,8 +85,8 @@ def create_database():
     '''
     create_genres = '''
         CREATE TABLE 'Genres' (
-        'Id'            INTEGER PRIMARY KEY AUTOINCREMENT,
-        "Genre"     TEXT NOT NULL
+        'Id'    INTEGER PRIMARY KEY AUTOINCREMENT,
+        "Genre" TEXT NOT NULL
         );
     '''
     drop_ratings = '''
@@ -127,6 +127,19 @@ def create_database():
     conn.close()
 
 def populate_database(top_media_type, top_item):
+    '''Populates the database.
+
+    Parameters
+    ----------
+    top_media_type: string
+        The media type to determine when to get movies or shows information
+    top_item: class
+        An instance of a top rated movie or show
+
+    Returns
+    -------
+    None
+    '''
     conn = sqlite3.connect("project4.sqlite")
     cur = conn.cursor()
     rating_id = ''
@@ -424,8 +437,12 @@ def get_sites_for_movies_or_shows(top_media_type, top_url, item_count):
 
     Parameters
     ----------
+    top_media_type: string
+        The media type to determine when to get movies or shows information
     top_url: string
         The URL for a movie/tv show page on imdb.com
+    item_count: int
+        The number of instances of a movie or show to be created
 
     Returns
     -------
@@ -444,7 +461,7 @@ def get_sites_for_movies_or_shows(top_media_type, top_url, item_count):
     for top in tops:
         top_media_url = top.find('a')['href']
         top_media_url = BASE_URL + top_media_url
-        if len(top_movies_list) == 10 or len(top_shows_list) == 10:
+        if len(top_movies_list) == item_count or len(top_shows_list) == item_count:
             break
         else:
             if top_media_type == 'movies':
