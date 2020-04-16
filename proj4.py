@@ -12,6 +12,7 @@ import sqlite3
 BASE_URL = 'https://www.imdb.com'
 TOP_RATED_DICT = {'movies': 'https://www.imdb.com/chart/top/?ref_=nv_mv_250',
                   'shows': 'https://www.imdb.com/chart/toptv/?ref_=nv_tvv_250'}
+DBNAME = 'project4.sqlite'
 GENRE_LIST = {  1: 'Action', 2: 'Adventure', 3: 'Animation', 4: 'Biography', 5: 'Comedy', 6: 'Crime',
                 7: 'Documentary', 8: 'Drama', 9: 'Family', 10: 'Fantasy', 11: 'Film-Noir', 12: 'History',
                 13: 'Horror', 14: 'Music', 15: 'Musical', 16: 'Mystery', 17: 'Reality-TV', 18: 'Romance',
@@ -22,15 +23,93 @@ RATINGS_LIST = {1: 'G', 2: 'GP', 3: 'PG', 4: 'PG-13', 5: 'NC-17', 6: 'M', 7: 'R'
                 16: 'Approved', 17: 'Passed', 18: 'Not Rated'}
 CACHE_FILE_NAME = 'cache.json'
 CACHE_DICT = {}
-
-headers = {
+HEADERS = {
     'User-Agent': 'UMSI 507 Final Project - Python Crawling and Scraping',
     'From': 'josuef@umich.edu',
     'Course-Info': 'https://si.umich.edu/programs/courses/507'
 }
+############### CACHE FUNCTIONS ###############
+def load_cache():
+    ''' Opens the cache file if it exists and loads the JSON into
+    the CACHE_DICT dictionary.
+    if the cache file doesn't exist, creates a new cache dictionary
+
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    The opened cache: dict
+    '''
+    try:
+        cache_file = open(CACHE_FILE_NAME, 'r')
+        cache_file_contents = cache_file.read()
+        cache = json.loads(cache_file_contents)
+        cache_file.close()
+    except:
+        cache = {}
+    return cache
+
+def save_cache(cache):
+    ''' Saves the current state of the cache to disk
+
+    Parameters
+    ----------
+    cache: dict
+        The dictionary to save
+
+    Returns
+    -------
+    None
+    '''
+    cache_file = open(CACHE_FILE_NAME, 'w')
+    contents_to_write = json.dumps(cache)
+    cache_file.write(contents_to_write)
+    cache_file.close()
+
+def make_url_request_using_cache(url, cache):
+    '''Check the cache for a saved result for this baseurl inside cache:
+    values combo. If the result is found, return it. Otherwise send a new
+    request, save it, then return it.
+
+    Parameters
+    ----------
+    baseurl: string
+        The URL for the API endpoint
+    cache: dict
+        A cache with previously used url searches
+
+    Returns
+    -------
+    dict
+        the results of the query as a dictionary loaded from cache
+        JSON
+    '''
+    if (url in cache.keys()):
+        # print("Using cache")
+        return cache[url]
+    else:
+        # print("Fetching")
+        time.sleep(1)
+        response = requests.get(url, headers=HEADERS)
+        cache[url] = response.text
+        save_cache(cache)
+        return cache[url]
+
 ############### DATABASE FUNCTIONS ###############
 def create_database():
-    conn = sqlite3.connect("project4.sqlite")
+    '''Creates database to be populated with IMDb data
+
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    None
+    '''
+    conn = sqlite3.connect(DBNAME)
     cur = conn.cursor()
 
     drop_movies = '''
@@ -127,7 +206,7 @@ def create_database():
     conn.close()
 
 def populate_database(top_media_type, top_item):
-    '''Populates the database.
+    '''Populates the database with data from IMDb
 
     Parameters
     ----------
@@ -140,7 +219,7 @@ def populate_database(top_media_type, top_item):
     -------
     None
     '''
-    conn = sqlite3.connect("project4.sqlite")
+    conn = sqlite3.connect(DBNAME)
     cur = conn.cursor()
     rating_id = ''
     genre_id = ''
@@ -157,7 +236,7 @@ def populate_database(top_media_type, top_item):
             VALUES (NULL, ?, ?, ?, ?, ?, ?, ?)
         '''
         movie = [top_item.title, rating_id, top_item.country, int(top_item.release_year),
-                genre_id, top_item.length, float(top_item.num_rating)]
+                 genre_id, top_item.length, float(top_item.num_rating)]
         cur.execute(insert_movie, movie)
     else:
         for key, show_type in SHOW_TYPE_LIST.items():
@@ -173,74 +252,163 @@ def populate_database(top_media_type, top_item):
 
     conn.commit()
     conn.close()
-############### CACHE FUNCTIONS ###############
-def load_cache():
-    ''' Opens the cache file if it exists and loads the JSON into
-    the CACHE_DICT dictionary.
-    if the cache file doesn't exist, creates a new cache dictionary
+
+############### QUERIES ###############
+def execute_query(query):
+    ''' Executes a given SQL query
 
     Parameters
     ----------
-    None
+    query
+        string : SQL string
 
     Returns
     -------
-    The opened cache: dict
+    query_results
+        list : a list of tuples that represent the query result
     '''
-    try:
-        cache_file = open(CACHE_FILE_NAME, 'r')
-        cache_file_contents = cache_file.read()
-        cache = json.loads(cache_file_contents)
-        cache_file.close()
-    except:
-        cache = {}
-    return cache
+    connection = sqlite3.connect(DBNAME)
+    cursor = connection.cursor()
+    query_results = cursor.execute(query).fetchall()
+    connection.close()
+    return query_results
 
-def save_cache(cache):
-    ''' Saves the current state of the cache to disk
-
-    Parameters
-    ----------
-    cache: dict
-        The dictionary to save
-
-    Returns
-    -------
-    None
-    '''
-    cache_file = open(CACHE_FILE_NAME, 'w')
-    contents_to_write = json.dumps(cache)
-    cache_file.write(contents_to_write)
-    cache_file.close()
-
-def make_url_request_using_cache(url, cache):
-    '''Check the cache for a saved result for this baseurl inside cache:
-    values combo. If the result is found, return it. Otherwise send a new
-    request, save it, then return it.
-
-    Parameters
-    ----------
-    baseurl: string
-        The URL for the API endpoint
-    cache: dict
-        A cache with previously used url searches
-
-    Returns
-    -------
-    dict
-        the results of the query as a dictionary loaded from cache
-        JSON
-    '''
-    if (url in cache.keys()):
-        print("Using cache")
-        return cache[url]
+def get_query(query_num):
+    if query_num == 1:
+        query = movie_avg_num_rating_by_first_genre()
+        query_result = execute_query(query)
+    elif query_num == 2:
+        query = movie_avg_num_rating_by_rating()
+        query_result = execute_query(query)
+    elif query_num == 3:
+        query = movie_data()
+        query_result = execute_query(query)
+    elif query_num == 4:
+        query = show_avg_num_rating_by_show_type()
+        query_result = execute_query(query)
+    elif query_num == 5:
+        query = show_avg_num_rating_by_first_genre()
+        query_result = execute_query(query)
+    elif query_num == 6:
+        query = show_avg_num_rating_by_rating()
+        query_result = execute_query(query)
     else:
-        print("Fetching")
-        time.sleep(1)
-        response = requests.get(url, headers=headers)
-        cache[url] = response.text
-        save_cache(cache)
-        return cache[url]
+        query = show_data()
+        query_result = execute_query(query)
+    return query_result
+
+def print_query_results(query_results):
+    ''' Pretty prints query results
+
+    Parameters
+    ----------
+    query_results
+        list : a list of tuples that represent raw query result
+
+    Returns
+    -------
+    None
+    '''
+    grid_width = 20
+    for row in query_results:
+        col_list = []
+        for col in row:
+            if type(col) == str:
+                if len(str(col)) > 15:
+                    col = (str(col[0:15]) + '...')
+            if type(col) == float:
+                col = round(col, 1)
+            col_list.append(str(col))
+        print("".join(str(col).ljust(grid_width) for col in col_list))
+    print()
+
+
+def movie_avg_num_rating_by_first_genre():
+    query = f'''
+            SELECT			g.Genre, AVG(m.NumberRating) as AvgRating
+            FROM			Movies as m
+            JOIN				Genres as g
+                ON			m.FirstGenreId = g.Id
+            GROUP BY		g.Genre;
+            '''
+    return query
+
+def movie_avg_num_rating_by_rating():
+    query = f'''
+            SELECT			r.Rating, AVG(m.NumberRating) as AvgRating
+            FROM			Movies as m
+            JOIN				Ratings as r
+                ON			m.FilmRatingId = r.Id
+            GROUP BY		r.Rating;
+            '''
+    return query
+
+
+def movie_data():
+    query = f'''
+            SELECT			m.MovieTitle, r.Rating, m.Country, m.ReleaseYear, g.Genre as FirstGenre, m.Length, m.NumberRating
+            FROM			Movies as m
+            JOIN				Ratings as r
+                ON			m.FilmRatingId = r.Id
+            JOIN				Genres as g
+                ON			m.FirstGenreId = g.Id;
+            '''
+    return query
+
+def show_avg_num_rating_by_show_type():
+    query = f'''
+            SELECT			st.ShowType, AVG(s.NumberRating) as AvgRating
+            FROM			Shows as s
+            JOIN				ShowTypes as st
+                ON			s.ShowTypeId = st.Id
+            GROUP BY		st.ShowType;
+            '''
+    return query
+def show_avg_num_rating_by_first_genre():
+    query = f'''
+            SELECT			g.Genre, AVG(s.NumberRating) as AvgRating
+            FROM			Shows as s
+            JOIN				Genres as g
+                ON			s.FirstGenreId = g.Id
+            GROUP BY		g.Genre;
+            '''
+    return query
+def show_avg_num_rating_by_rating():
+    query = f'''
+            SELECT			r.Rating, AVG(s.NumberRating) as AvgRating
+            FROM			Shows as s
+            JOIN				Ratings as r
+                ON			s.ShowRatingId = r.Id
+            GROUP BY		r.Rating;
+            '''
+    return query
+def show_data():
+    query = f'''
+            SELECT			s.ShowTitle, r.Rating, s.YearsAired, g.Genre as FirstGenre, st.ShowType, s.Length, s.NumberRating
+            FROM			Shows as s
+            JOIN				Ratings as r
+                ON			s.ShowRatingId = r.Id
+            JOIN				Genres as g
+                ON			s.FirstGenreId = g.Id
+            JOIN				ShowTypes as st
+                ON			s.ShowTypeId = st.Id;
+            '''
+    return query
+
+############### HELPER FUNCTIONS ###############
+def print_result_options(item_count):
+    print()
+    print(f'Congrats! You now have access to the top {item_count} rated movies and shows!')
+    print('Below are the different ways you can look at your results.')
+    print()
+    print(f'[1] Average Rating (out of 10) by First Movie Genre')
+    print(f'[2] Average Rating (out of 10) by Film Rating')
+    print(f'[3] Movies Data (All Movie Results)')
+    print(f'[4] Average Rating (out of 10) by Show Type')
+    print(f'[5] Average Rating (out of 10) by First Show Genre')
+    print(f'[6] Average Rating (out of 10) by Show Rating')
+    print(f'[7] Shows Data (All Show Results)')
+    print()
 
 ############### BASE CLASS AND FUNCTIONS ###############
 class TopMovieShow:
@@ -263,7 +431,6 @@ class TopMovieShow:
     num_rating: string
         the overall rating of a movie (out of 10)
     '''
-
     def __init__(self, title, release_year, rating, genre, country, length, num_rating):
         self.title = title
         self.release_year = release_year
@@ -461,7 +628,7 @@ def get_sites_for_movies_or_shows(top_media_type, top_url, item_count):
     for top in tops:
         top_media_url = top.find('a')['href']
         top_media_url = BASE_URL + top_media_url
-        if len(top_movies_list) == item_count or len(top_shows_list) == item_count:
+        if len(top_movies_list) == 10 or len(top_shows_list) == 10:
             break
         else:
             if top_media_type == 'movies':
@@ -479,7 +646,9 @@ if __name__ == "__main__":
     print('Welcome! We are here to help you find information on the top 250 rated movies and tv shows!')
     while True:
         item_count = input('How many items per media type would you like info on you want to see (min 50, max 250)? Or type "exit" to quit: ')
+        print()
         if item_count.lower() == 'exit':
+            print('Goodbye!')
             exit()
         if item_count.isdigit():
             if int(item_count) < 50 or int(item_count) > 250:
@@ -497,9 +666,27 @@ if __name__ == "__main__":
                     for top_item in top_rated_list:
                         count += 1
                         top_rated_dict[count] = top_item.info()
-                        print(f"[{count}] {top_item.info()}")
                         populate_database(top_media_type.lower(), top_item)
+                while True:
+                    print_result_options(item_count)
+                    query_num = input('Which option would you like to choose? Or type "exit" to quit: ')
                     print()
+                    if query_num.lower() == 'exit':
+                        print('This is the end of the program. Goodbye!')
+                        exit()
+                    if query_num.isdigit():
+                        if int(query_num) < 1 or int(query_num) > 7:
+                            print('[Error] Incorrect input!')
+                            continue
+                        else:
+                            result = get_query(int(query_num))
+                            print_query_results(result)
+                            # continue
+                            # print('This is the end of the program. Goodbye!')
+                            # exit()
+                    else:
+                        print('[Error] Incorrect input!')
+                        continue
         else:
             print(item_count)
             print('[Error] Incorrect input!')
