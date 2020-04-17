@@ -8,6 +8,7 @@ import requests
 import json
 import time
 import sqlite3
+import plotly.graph_objs as go
 
 BASE_URL = 'https://www.imdb.com'
 TOP_RATED_DICT = {'movies': 'https://www.imdb.com/chart/top/?ref_=nv_mv_250',
@@ -253,7 +254,7 @@ def populate_database(top_media_type, top_item):
     conn.commit()
     conn.close()
 
-############### QUERIES ###############
+############### QUERIES AND PLOTLY ###############
 def execute_query(query):
     ''' Executes a given SQL query
 
@@ -274,6 +275,18 @@ def execute_query(query):
     return query_results
 
 def get_query(query_num):
+    ''' Constructs SQL query to retrieve data based on requirements
+
+    Parameters
+    ----------
+    query_num
+        int : a number value used to determine which SQL Query will be executed
+
+    Returns
+    -------
+    qurey_result
+        list : a list of tuples that represent the query result
+    '''
     if query_num == 1:
         query = movie_avg_num_rating_by_first_genre()
         query_result = execute_query(query)
@@ -323,7 +336,52 @@ def print_query_results(query_results):
     print()
 
 
+def plot_data(query_num, query_results):
+    ''' Plots SQL Query results into a barplot
+
+    Parameters
+    ----------
+    command
+        string : a string used to constuct an SQL query string
+    query_results
+        list : a list of tuples that represent the query result
+
+    Returns
+    -------
+    None
+    '''
+    xvals = []
+    yvals = []
+    for result in query_results:
+        xvals.append(result[0])
+        yvals.append(result[1])
+    if query_num == 1:
+        basic_layout = go.Layout(title='Movie Avg. Rating (out of 10) by First Genre')
+    elif query_num == 2:
+        basic_layout = go.Layout(title='Move Avg. Rating (out of 10) by Film Rating')
+    elif query_num == 4:
+        basic_layout = go.Layout(title='Show Avg. Rating (out of 10) by Show Type')
+    elif query_num == 5:
+        basic_layout = go.Layout(title='Show Avg. Rating (out of 10) by First Genre')
+    else:
+        basic_layout = go.Layout(title='Show Avg. Rating (out of 10) by Show Rating')
+
+    bar_data = go.Bar(x=xvals, y=yvals)
+    fig = go.Figure(data=bar_data, layout=basic_layout)
+    fig.show()
+
 def movie_avg_num_rating_by_first_genre():
+    ''' Constructs SQL query to retrieve data based on requirements
+
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    query
+        string : SQL string
+    '''
     query = f'''
             SELECT			g.Genre, AVG(m.NumberRating) as AvgRating
             FROM			Movies as m
@@ -334,6 +392,17 @@ def movie_avg_num_rating_by_first_genre():
     return query
 
 def movie_avg_num_rating_by_rating():
+    ''' Constructs SQL query to retrieve data based on requirements
+
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    query
+        string : SQL string
+    '''
     query = f'''
             SELECT			r.Rating, AVG(m.NumberRating) as AvgRating
             FROM			Movies as m
@@ -343,8 +412,18 @@ def movie_avg_num_rating_by_rating():
             '''
     return query
 
-
 def movie_data():
+    ''' Constructs SQL query to retrieve data based on requirements
+
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    query
+        string : SQL string
+    '''
     query = f'''
             SELECT			m.MovieTitle, r.Rating, m.Country, m.ReleaseYear, g.Genre as FirstGenre, m.Length, m.NumberRating
             FROM			Movies as m
@@ -356,6 +435,17 @@ def movie_data():
     return query
 
 def show_avg_num_rating_by_show_type():
+    ''' Constructs SQL query to retrieve data based on requirements
+
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    query
+        string : SQL string
+    '''
     query = f'''
             SELECT			st.ShowType, AVG(s.NumberRating) as AvgRating
             FROM			Shows as s
@@ -364,7 +454,19 @@ def show_avg_num_rating_by_show_type():
             GROUP BY		st.ShowType;
             '''
     return query
+
 def show_avg_num_rating_by_first_genre():
+    ''' Constructs SQL query to retrieve data based on requirements
+
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    query
+        string : SQL string
+    '''
     query = f'''
             SELECT			g.Genre, AVG(s.NumberRating) as AvgRating
             FROM			Shows as s
@@ -373,7 +475,19 @@ def show_avg_num_rating_by_first_genre():
             GROUP BY		g.Genre;
             '''
     return query
+
 def show_avg_num_rating_by_rating():
+    ''' Constructs SQL query to retrieve data based on requirements
+
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    query
+        string : SQL string
+    '''
     query = f'''
             SELECT			r.Rating, AVG(s.NumberRating) as AvgRating
             FROM			Shows as s
@@ -382,7 +496,19 @@ def show_avg_num_rating_by_rating():
             GROUP BY		r.Rating;
             '''
     return query
+
 def show_data():
+    ''' Constructs SQL query to retrieve data based on requirements
+
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    query
+        string : SQL string
+    '''
     query = f'''
             SELECT			s.ShowTitle, r.Rating, s.YearsAired, g.Genre as FirstGenre, st.ShowType, s.Length, s.NumberRating
             FROM			Shows as s
@@ -397,6 +523,17 @@ def show_data():
 
 ############### HELPER FUNCTIONS ###############
 def print_result_options(item_count):
+    ''' Constructs SQL query to retrieve data based on requirements
+
+    Parameters
+    ----------
+    item_count
+        int: number of items to be scraped from top rated movie and tv shows
+
+    Returns
+    -------
+    None
+    '''
     print()
     print(f'Congrats! You now have access to the top {item_count} rated movies and shows!')
     print('Below are the different ways you can look at your results.')
@@ -628,7 +765,7 @@ def get_sites_for_movies_or_shows(top_media_type, top_url, item_count):
     for top in tops:
         top_media_url = top.find('a')['href']
         top_media_url = BASE_URL + top_media_url
-        if len(top_movies_list) == 10 or len(top_shows_list) == 10:
+        if len(top_movies_list) == item_count or len(top_shows_list) == item_count:
             break
         else:
             if top_media_type == 'movies':
@@ -642,54 +779,87 @@ def get_sites_for_movies_or_shows(top_media_type, top_url, item_count):
     else:
         return top_shows_list
 
-if __name__ == "__main__":
+def interative_prompt():
+    ''' First half of the interactive prompt for program that scrapes IMDb.com and creates database.
+
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    None
+    '''
     print('Welcome! We are here to help you find information on the top 250 rated movies and tv shows!')
     while True:
-        item_count = input('How many items per media type would you like info on you want to see (min 50, max 250)? Or type "exit" to quit: ')
-        print()
-        if item_count.lower() == 'exit':
-            print('Goodbye!')
-            exit()
-        if item_count.isdigit():
-            if int(item_count) < 50 or int(item_count) > 250:
+            item_count = input(
+                'How many items per media type would you like info on you want to see (min 50, max 250)? Or type "exit" to quit: ')
+            print()
+            if item_count.lower() == 'exit':
+                print('Goodbye!')
+                exit()
+            if item_count.isdigit():
+                if int(item_count) < 50 or int(item_count) > 250:
+                    print(item_count)
+                    print('[Error] Incorrect input!')
+                    continue
+                else:
+                    create_database()
+                    for top_media_type, top_media_url in TOP_RATED_DICT.items():
+                        print(
+                            f'Getting Top Rated {top_media_type.capitalize()}!')
+                        top_url = top_media_url
+                        top_rated_list = get_sites_for_movies_or_shows(
+                            top_media_type.lower(), top_url, int(item_count))
+                        top_rated_dict = {}
+                        count = 0
+                        for top_item in top_rated_list:
+                            count += 1
+                            top_rated_dict[count] = top_item.info()
+                            populate_database(top_media_type.lower(), top_item)
+                    interative_prompt_output(item_count)
+            else:
                 print(item_count)
                 print('[Error] Incorrect input!')
                 continue
+            print('This is the end of the program. Goodbye!')
+            exit()
+
+
+def interative_prompt_output(item_count):
+    ''' Second half of the interactive prompt for program to see records in created database
+
+    Parameters
+    ----------
+    item_count
+        int: number of items to be scraped from top rated movie and tv shows
+
+    Returns
+    -------
+    None
+    '''
+    while True:
+        print_result_options(item_count)
+        query_num = input(
+            'Which option would you like to choose? Or type "exit" to quit: ')
+        print()
+        if query_num.lower() == 'exit':
+            print('This is the end of the program. Goodbye!')
+            exit()
+        if query_num.isdigit():
+            if int(query_num) < 1 or int(query_num) > 7:
+                print('[Error] Incorrect input!')
+                continue
             else:
-                create_database()
-                for top_media_type, top_media_url in TOP_RATED_DICT.items():
-                    print(f'Getting Top Rated {top_media_type.capitalize()}!')
-                    top_url = top_media_url
-                    top_rated_list = get_sites_for_movies_or_shows(top_media_type.lower(), top_url, int(item_count))
-                    top_rated_dict = {}
-                    count = 0
-                    for top_item in top_rated_list:
-                        count += 1
-                        top_rated_dict[count] = top_item.info()
-                        populate_database(top_media_type.lower(), top_item)
-                while True:
-                    print_result_options(item_count)
-                    query_num = input('Which option would you like to choose? Or type "exit" to quit: ')
-                    print()
-                    if query_num.lower() == 'exit':
-                        print('This is the end of the program. Goodbye!')
-                        exit()
-                    if query_num.isdigit():
-                        if int(query_num) < 1 or int(query_num) > 7:
-                            print('[Error] Incorrect input!')
-                            continue
-                        else:
-                            result = get_query(int(query_num))
-                            print_query_results(result)
-                            # continue
-                            # print('This is the end of the program. Goodbye!')
-                            # exit()
-                    else:
-                        print('[Error] Incorrect input!')
-                        continue
+                query_results = get_query(int(query_num))
+                if int(query_num) == 3 or int(query_num) == 7:
+                    print_query_results(query_results)
+                else:
+                    print('Graphing with Plotly...')
+                    plot_data(int(query_num), query_results)
         else:
-            print(item_count)
             print('[Error] Incorrect input!')
             continue
-        print('This is the end of the program. Goodbye!')
-        exit()
+
+if __name__ == "__main__":
+    interative_prompt()
