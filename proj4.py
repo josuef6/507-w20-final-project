@@ -1,6 +1,8 @@
 #########################################
 ##### Name:      Josue Figueroa     #####
 ##### Uniqname:       josuef        #####
+##### Course: SI 507 Winter 2020    #####
+##### Project: (Final) Project 4    #####
 #########################################
 
 from bs4 import BeautifulSoup
@@ -806,8 +808,7 @@ def interative_prompt():
                 else:
                     create_database()
                     for top_media_type, top_media_url in TOP_RATED_DICT.items():
-                        print(
-                            f'Getting Top Rated {top_media_type.capitalize()}!')
+                        print(f'Getting Top Rated {top_media_type.capitalize()}!')
                         top_url = top_media_url
                         top_rated_list = get_sites_for_movies_or_shows(
                             top_media_type.lower(), top_url, int(item_count))
@@ -816,6 +817,7 @@ def interative_prompt():
                         for top_item in top_rated_list:
                             count += 1
                             top_rated_dict[count] = top_item.info()
+                            # print(f"[{count}]: {top_item.info()}")
                             populate_database(top_media_type.lower(), top_item)
                     interative_prompt_output(item_count)
             else:
