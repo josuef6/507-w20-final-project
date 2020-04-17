@@ -809,6 +809,7 @@ def interative_prompt():
                     create_database()
                     for top_media_type, top_media_url in TOP_RATED_DICT.items():
                         print(f'Getting Top Rated {top_media_type.capitalize()}!')
+                        print('Loading...')
                         top_url = top_media_url
                         top_rated_list = get_sites_for_movies_or_shows(
                             top_media_type.lower(), top_url, int(item_count))
